@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="description" content="PPHPredict — AI-powered postpartum hemorrhage risk stratification tool. Enter 12 clinical parameters for instant PPH probability scoring."/>
+<meta name="author" content="PPHPredict"/>
+<meta property="og:title" content="PPHPredict — AI-Powered Obstetric Risk Tool"/>
+<meta property="og:description" content="Machine-learning PPH risk stratification prototype. Clinically-grounded parameters, explainable AI, runs entirely in the browser."/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PPHPredict — AI-Powered Obstetric Risk Tool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #06080c;
+  --bg2:      #0d1117;
+  --bg3:      #141b24;
+  --bg4:      #1c2533;
+  --border:   #1e2d3d;
+  --border2:  #2d4059;
+  --text:     #e8edf5;
+  --text2:    #8899aa;
+  --text3:    #4d6070;
+  --accent:   #00d4ff;
+  --accent2:  #0097be;
+  --accent3:  #003d50;
+  --red:      #ff4b4b;
+  --red-bg:   #1a0808;
+  --red-b:    #5c1414;
+  --amber:    #ffb547;
+  --amber-bg: #1a1000;
+  --green:    #00e676;
+  --green-bg: #00160a;
+  --green-b:  #00472a;
+  --purple:   #c084fc;
+  --r: 10px;
+  --r-sm: 6px;
+  --font: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-head: 'Syne', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+}
+
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; line-height: 1.6; min-height: 100vh; }
+#root { min-height: 100vh; }
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* ── Animations ── */
+@keyframes fadeUp   { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+@keyframes fadeIn   { from { opacity:0; } to { opacity:1; } }
+@keyframes spin     { to { transform: rotate(360deg); } }
+@keyframes glow     { 0%,100% { opacity:.6; } 50% { opacity:1; } }
+@keyframes pulse-r  { 0%{box-shadow:0 0 0 0 rgba(255,75,75,.5)} 70%{box-shadow:0 0 0 14px rgba(255,75,75,0)} 100%{box-shadow:0 0 0 0 rgba(255,75,75,0)} }
+@keyframes pulse-g  { 0%{box-shadow:0 0 0 0 rgba(0,230,118,.4)} 70%{box-shadow:0 0 0 12px rgba(0,230,118,0)} 100%{box-shadow:0 0 0 0 rgba(0,230,118,0)} }
+@keyframes scanline { 0%{transform:translateY(-100%)} 100%{transform:translateY(100vh)} }
+@keyframes blink    { 0%,100%{opacity:1} 50%{opacity:0} }
+@keyframes drift    { 0%{transform:translate(0,0) scale(1)} 50%{transform:translate(30px,-20px) scale(1.05)} 100%{transform:translate(0,0) scale(1)} }
+@keyframes numberUp { from{transform:translateY(4px);opacity:0} to{transform:translateY(0);opacity:1} }
+@keyframes shimmer  { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+
+.fade-up  { animation: fadeUp  .45s cubic-bezier(.22,.68,0,1.1) both; }
+.fade-in  { animation: fadeIn  .4s ease both; }
+
+/* ── Landing Page ── */
+.landing {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.landing-bg {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 20% 20%, rgba(0,212,255,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 60% at 80% 80%, rgba(192,132,252,0.05) 0%, transparent 55%),
+    radial-gradient(ellipse 40% 40% at 50% 50%, rgba(255,75,75,0.03) 0%, transparent 50%);
+  animation: drift 18s ease-in-out infinite;
+}
+
+.grid-overlay {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 60px 60px;
+  opacity: .18;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);
+}
+
+.landing-nav {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 48px;
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+}
+
+.nav-brand {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--font-head);
+  font-size: 20px; font-weight: 700;
+  letter-spacing: -.02em;
+}
+.nav-brand .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: glow 2s ease-in-out infinite; }
+.nav-brand span { color: var(--accent); }
+
+.nav-pills { display: flex; gap: 6px; }
+.nav-pill {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--font-mono);
+  border: 1px solid var(--border2);
+  background: transparent;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all .2s;
+}
+.nav-pill:hover, .nav-pill.active { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+
+.landing-hero {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 80px 32px 60px;
+  position: relative;
+  z-index: 5;
+}
+
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--accent3);
+  background: rgba(0,212,255,.06);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  margin-bottom: 28px;
+  animation: fadeUp .5s ease both;
+}
+.hero-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: glow 1.5s ease-in-out infinite; }
+
+.hero-title {
+  font-family: var(--font-head);
+  font-size: clamp(40px, 7vw, 80px);
+  font-weight: 800;
+  letter-spacing: -.04em;
+  line-height: 1.0;
+  margin-bottom: 20px;
+  animation: fadeUp .5s .1s ease both;
+}
+.hero-title .line2 { display: block; color: var(--accent); }
+.hero-title .line3 { display: block; color: var(--text3); font-weight: 400; font-size: .55em; letter-spacing: -.01em; margin-top: 6px; font-family: var(--font); }
+
+.hero-sub {
+  max-width: 560px;
+  font-size: 16px;
+  color: var(--text2);
+  line-height: 1.7;
+  margin-bottom: 40px;
+  animation: fadeUp .5s .2s ease both;
+}
+
+.hero-cta {
+  display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+  animation: fadeUp .5s .3s ease both;
+  margin-bottom: 60px;
+}
+
+.btn-hero-primary {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 14px 28px;
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  border-radius: 8px;
+  font-family: var(--font-head);
+  font-size: 15px; font-weight: 700;
+  cursor: pointer;
+  transition: all .2s;
+  box-shadow: 0 0 30px rgba(0,212,255,.25);
+}
+.btn-hero-primary:hover { background: #33ddff; box-shadow: 0 0 40px rgba(0,212,255,.4); transform: translateY(-1px); }
+
+.btn-hero-ghost {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 14px 28px;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  font-family: var(--font);
+  font-size: 15px; font-weight: 500;
+  cursor: pointer;
+  transition: all .2s;
+}
+.btn-hero-ghost:hover { border-color: var(--text2); background: var(--bg3); }
+
+.hero-stats {
+  display: flex; gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg2);
+  animation: fadeUp .5s .4s ease both;
+}
+.hero-stat {
+  padding: 20px 32px;
+  text-align: center;
+  border-right: 1px solid var(--border);
+}
+.hero-stat:last-child { border-right: none; }
+.hero-stat-val {
+  font-family: var(--font-mono);
+  font-size: 28px; font-weight: 500;
+  color: var(--accent);
+  display: block;
+  animation: numberUp .6s ease both;
+}
+.hero-stat-lbl { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .07em; margin-top: 2px; }
+
+/* Feature cards */
+.features-section {
+  padding: 0 48px 80px;
+  position: relative; z-index: 5;
+}
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 16px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.feature-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  transition: border-color .2s, transform .2s;
+}
+.feature-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+.feature-icon { font-size: 28px; margin-bottom: 12px; display: block; }
+.feature-title { font-family: var(--font-head); font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+.feature-desc { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+/* ── App Shell ── */
+.app-shell {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 100vh;
+}
+
+.sidebar {
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  padding: 20px 14px;
+  display: flex; flex-direction: column; gap: 4px;
+  position: sticky; top: 0; height: 100vh;
+  overflow-y: auto;
+}
+
+.sidebar-logo {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--font-head);
+  font-size: 17px; font-weight: 700;
+  color: var(--text);
+  padding: 4px 10px 16px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 6px;
+  letter-spacing: -.02em;
+}
+.sidebar-logo .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+.sidebar-logo span { color: var(--accent); }
+
+.nav-section { font-size: 10px; font-weight: 500; letter-spacing: .09em; text-transform: uppercase; color: var(--text3); padding: 10px 10px 3px; font-family: var(--font-mono); }
+
+.nav-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  cursor: pointer; color: var(--text2);
+  font-size: 13px; font-weight: 400;
+  border: none; background: transparent;
+  width: 100%; text-align: left;
+  transition: all .15s;
+}
+.nav-item:hover  { background: var(--bg3); color: var(--text); }
+.nav-item.active { background: var(--bg3); color: var(--text); font-weight: 500; border-left: 2px solid var(--accent); padding-left: 8px; }
+.nav-item .ni    { font-size: 15px; width: 18px; text-align: center; }
+.nav-badge { margin-left: auto; background: var(--bg4); border: 1px solid var(--border2); color: var(--text3); font-size: 10px; padding: 1px 6px; border-radius: 10px; font-family: var(--font-mono); }
+
+.sidebar-footer { margin-top: auto; padding: 12px 10px; border-top: 1px solid var(--border); }
+.model-chip { background: var(--bg3); border: 1px solid var(--border2); border-radius: 8px; padding: 10px 12px; }
+.model-chip-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.model-chip-name { font-family: var(--font-mono); font-size: 11px; color: var(--text); font-weight: 500; }
+.model-chip-badge { background: rgba(0,212,255,.12); border: 1px solid var(--accent3); color: var(--accent); font-family: var(--font-mono); font-size: 9px; padding: 1px 6px; border-radius: 4px; }
+.model-chip-row { display: flex; justify-content: space-between; font-size: 11px; color: var(--text3); margin-bottom: 2px; }
+.model-chip-row span:last-child { color: var(--text2); font-family: var(--font-mono); }
+.live-dot { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--green); margin-top: 6px; }
+.live-dot::before { content:''; width:6px; height:6px; border-radius:50%; background:var(--green); animation: glow 1.5s ease-in-out infinite; display:inline-block; }
+
+/* Main */
+.main { padding: 28px 36px; overflow-y: auto; }
+
+.page-header { margin-bottom: 28px; animation: fadeUp .4s ease both; }
+.page-title { font-family: var(--font-head); font-size: 24px; font-weight: 700; letter-spacing: -.02em; color: var(--text); margin-bottom: 4px; }
+.page-sub { color: var(--text3); font-size: 13px; }
+
+/* Cards */
+.card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r); padding: 18px 22px; margin-bottom: 14px; }
+.card-title { font-size: 10px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--text3); font-family: var(--font-mono); margin-bottom: 14px; }
+
+/* Form */
+.form-grid   { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field label { font-size: 12px; color: var(--text2); }
+.field label span { color: var(--text3); font-size: 11px; margin-left: 4px; }
+.field input[type="number"], .field select {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: var(--r-sm);
+  color: var(--text); font-family: var(--font); font-size: 14px;
+  padding: 8px 11px; outline: none; width: 100%;
+  transition: border-color .15s, box-shadow .15s;
+  -moz-appearance: textfield;
+}
+.field input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+.field input[type="number"]:focus, .field select:focus {
+  border-color: var(--accent2);
+  box-shadow: 0 0 0 3px rgba(0,151,190,.15);
+}
+.field input.err { border-color: var(--red); }
+.field select option { background: var(--bg2); }
+
+/* Toggle group */
+.toggle-grp { display: flex; border: 1px solid var(--border); border-radius: var(--r-sm); overflow: hidden; }
+.t-btn {
+  flex: 1; padding: 8px 6px;
+  background: var(--bg3); border: none; color: var(--text2);
+  font-family: var(--font); font-size: 12px; cursor: pointer;
+  transition: all .15s;
+}
+.t-btn + .t-btn { border-left: 1px solid var(--border); }
+.t-btn.on { background: var(--accent2); color: #fff; font-weight: 500; }
+.t-btn:hover:not(.on) { background: var(--bg4); color: var(--text); }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 16px; border-radius: var(--r-sm);
+  font-family: var(--font); font-size: 13px; font-weight: 500;
+  cursor: pointer; border: none; transition: all .15s; text-decoration: none;
+}
+.btn-primary { background: var(--accent2); color: #fff; }
+.btn-primary:hover { background: var(--accent); color: var(--bg); }
+.btn-danger  { background: #aa2020; color: #fff; }
+.btn-danger:hover { background: var(--red); }
+.btn-ghost   { background: var(--bg3); border: 1px solid var(--border); color: var(--text2); }
+.btn-ghost:hover { border-color: var(--border2); color: var(--text); }
+.btn-green   { background: #0a5c35; color: var(--green); border: 1px solid var(--green-b); }
+.btn-green:hover { background: #0d7a46; }
+.btn-run {
+  background: linear-gradient(135deg, var(--accent2), #007799);
+  color: #fff; font-family: var(--font-head); font-size: 14px; font-weight: 700;
+  letter-spacing: .02em; padding: 13px 24px;
+  box-shadow: 0 4px 20px rgba(0,151,190,.3);
+}
+.btn-run:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(0,151,190,.4); }
+
+/* Result panel */
+.result-panel { border-radius: var(--r); padding: 22px; margin-top: 20px; border: 1px solid; animation: fadeUp .3s ease; }
+.r-low   { background: var(--green-bg); border-color: var(--green-b); }
+.r-med   { background: var(--amber-bg); border-color: #4a3200; }
+.r-high  { background: var(--red-bg); border-color: var(--red-b); }
+.r-vhigh { background: #110000; border-color: #7a0000; }
+
+.result-prob {
+  font-family: var(--font-head); font-size: 58px;
+  line-height: 1; margin-bottom: 3px; letter-spacing: -.03em;
+  animation: numberUp .4s ease both;
+}
+.r-low .result-prob  { color: var(--green); animation: pulse-g 2s ease-out infinite; display:inline-block; }
+.r-med .result-prob  { color: var(--amber); }
+.r-high .result-prob { color: var(--red); }
+.r-vhigh .result-prob{ color: #ff2222; animation: pulse-r 1.5s ease-out infinite; display:inline-block; }
+
+.result-label { font-size: 13px; font-weight: 500; margin-bottom: 10px; }
+.result-bar-bg { background: rgba(255,255,255,.07); border-radius: 4px; height: 5px; margin: 14px 0; }
+.result-bar { height: 5px; border-radius: 4px; transition: width .9s cubic-bezier(.4,0,.2,1); }
+
+.factor-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,.04); font-size: 12px;
+}
+.factor-name { color: rgba(255,255,255,.5); }
+.factor-val  { font-family: var(--font-mono); font-size: 11px; }
+
+/* Stats */
+.stat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 20px; }
+.stat-card { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 12px 14px; text-align: center; }
+.stat-val { font-family: var(--font-mono); font-size: 20px; font-weight: 500; color: var(--text); }
+.stat-lbl { font-size: 10px; color: var(--text3); margin-top: 3px; }
+
+/* Table */
+.tbl-wrap { overflow-x: auto; border-radius: var(--r-sm); border: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: var(--bg3); padding: 9px 12px; text-align: left; color: var(--text2); font-weight: 500; font-family: var(--font-mono); font-size: 10px; border-bottom: 1px solid var(--border); white-space: nowrap; letter-spacing: .05em; text-transform: uppercase; }
+td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; white-space: nowrap; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--bg3); }
+
+/* Badges */
+.badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px; border-radius: 10px; font-size: 10px; font-weight: 500; font-family: var(--font-mono); }
+.badge-pph     { background: var(--red-bg);   border: 1px solid var(--red-b); color: var(--red); }
+.badge-nopph   { background: var(--green-bg); border: 1px solid var(--green-b); color: var(--green); }
+.badge-pending { background: var(--amber-bg); border: 1px solid #4a3200; color: var(--amber); }
+
+/* Empty */
+.empty { text-align: center; padding: 50px 20px; color: var(--text3); }
+.empty-icon  { font-size: 36px; margin-bottom: 10px; }
+.empty-title { font-size: 15px; color: var(--text2); margin-bottom: 5px; }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 22px; right: 22px;
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: var(--r); padding: 10px 16px;
+  font-size: 13px; color: var(--text);
+  box-shadow: 0 8px 28px rgba(0,0,0,.5);
+  animation: fadeUp .3s ease;
+  z-index: 1000; display: flex; align-items: center; gap: 8px; max-width: 300px;
+}
+
+/* Model page */
+.metric-row { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; font-size: 12px; }
+.metric-name { color: var(--text2); width: 130px; flex-shrink: 0; }
+.metric-bar-bg { flex: 1; background: var(--bg3); border-radius: 3px; height: 7px; }
+.metric-bar { height: 7px; border-radius: 3px; transition: width .8s cubic-bezier(.4,0,.2,1); }
+.metric-val { font-family: var(--font-mono); font-size: 11px; color: var(--text2); width: 50px; text-align: right; }
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.info-item { background: var(--bg3); border-radius: var(--r-sm); padding: 11px 13px; }
+.info-item-label { font-size: 10px; color: var(--text3); font-family: var(--font-mono); margin-bottom: 3px; text-transform: uppercase; letter-spacing: .06em; }
+.info-item-val { font-size: 13px; color: var(--text); font-weight: 500; }
+.divider { height: 1px; background: var(--border); margin: 16px 0; }
+
+/* Alert banner */
+.alert-banner {
+  padding: 10px 16px;
+  border-radius: var(--r-sm);
+  border: 1px solid;
+  font-size: 12px;
+  display: flex; align-items: flex-start; gap: 10px;
+  margin-bottom: 14px;
+}
+.alert-info  { background: rgba(0,212,255,.05); border-color: var(--accent3); color: var(--accent); }
+.alert-warn  { background: rgba(255,181,71,.05); border-color: #4a3200; color: var(--amber); }
+
+/* Readings section */
+.readings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.reading-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+.reading-step { font-family: var(--font-mono); font-size: 10px; color: var(--accent); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 6px; }
+.reading-title { font-family: var(--font-head); font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+.reading-body  { font-size: 12px; color: var(--text2); line-height: 1.7; }
+.reading-body code { font-family: var(--font-mono); background: var(--bg3); padding: 1px 5px; border-radius: 3px; font-size: 11px; color: var(--accent); }
+.reading-body ul  { padding-left: 16px; margin-top: 6px; }
+.reading-body li  { margin-bottom: 3px; }
+.reading-body .tag { display: inline-block; background: var(--bg3); border: 1px solid var(--border2); border-radius: 4px; padding: 2px 8px; font-size: 10px; font-family: var(--font-mono); color: var(--text2); margin: 2px 2px 2px 0; }
+
+@media (max-width: 900px) {
+  .app-shell { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .main { padding: 16px; }
+  .stat-grid { grid-template-columns: repeat(2,1fr); }
+  .form-grid, .form-grid-3 { grid-template-columns: 1fr; }
+  .hero-stats { flex-direction: column; }
+  .hero-stat { border-right: none; border-bottom: 1px solid var(--border); }
+  .features-grid { grid-template-columns: 1fr; }
+  .landing-nav { padding: 16px 20px; }
+  .features-section { padding: 0 20px 60px; }
+  .readings-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useCallback, useRef } = React;
+
+/* ═══════════════════════════════════════════════════════
+   MODEL — Prototype with simulated parameters.
+   Coefficients are NOT from real patient data.
+   Directions/magnitudes are grounded in published PPH
+   literature (RCOG GTG-52, 2016; Sentilhes et al. 2016).
+   All metrics below are ILLUSTRATIVE — not validated.
+   Replace with real sklearn output after training on data.
+═══════════════════════════════════════════════════════ */
+const MODEL = {
+  version: '2.0',
+  algorithm: 'Logistic Regression (sklearn)',
+  dataset: 'Prototype — simulated parameters (no real data)',
+  intercept: -0.933697,
+  features: [
+    'Age','Gestational Age (wks)','Gravida','Parity','Prev C-Section',
+    'Uterine Atony','Placenta Previa','Labor Duration (hrs)',
+    'Oxytocin Use','Birth Weight (g)','Hemoglobin Pre-op (g/dL)','Delivery Mode (vaginal=1)'
+  ],
+  coefs:  [0.320015,-0.511302,0.084303,-0.125031,0.325229,1.060405,0.555599,1.471621,0.457889,0.210147,-1.169197,-0.44839],
+  means:  [27.569,38.7197,3.5362,2.5663,0.2405,0.2142,0.095,11.2463,0.5605,3219.094,11.4366,0.6985],
+  stds:   [4.9211,1.9619,1.5019,1.6244,0.4274,0.4103,0.2932,3.515,0.4963,406.2581,1.3159,0.4589],
+  threshold: 0.7443,
+  metrics: { auroc:0.9505, aucpr:0.9086, recall:0.7766, precision:0.8760, f1:0.8233, specificity:0.9549 },
+  cm: { tn:677, fp:32, fn:65, tp:226 },
+  featureImportance: {
+    'Uterine Atony':0.4681,'Placenta Previa':0.0873,'Labor Duration':0.0846,
+    'Hemoglobin Pre-op':0.0718,'Delivery Mode':0.0566,'Oxytocin Use':0.0493,
+    'Prev C-Section':0.0466,'Gestational Age':0.0364,'Birth Weight':0.0262,
+    'Age':0.0295,'Parity':0.0225,'Gravida':0.021
+  }
+};
+
+function predictProb(inp) {
+  const raw = [inp.age, inp.gestAge, inp.gravida, inp.parity, inp.prevCS ? 1:0,
+               inp.atony ? 1:0, inp.previa ? 1:0, inp.laborHrs,
+               inp.oxytocin ? 1:0, inp.birthWt, inp.hemoglobin,
+               inp.delivery === 'vaginal' ? 1:0];
+  const z = MODEL.intercept + raw.reduce((s, v, i) =>
+    s + ((v - MODEL.means[i]) / MODEL.stds[i]) * MODEL.coefs[i], 0);
+  return 1 / (1 + Math.exp(-z));
+}
+
+function getRisk(prob) {
+  if (prob < 0.25) return { level:'low',    label:'Low Risk',       color:'#00e676', cls:'r-low' };
+  if (prob < 0.50) return { level:'med',    label:'Moderate Risk',  color:'#ffb547', cls:'r-med' };
+  if (prob < MODEL.threshold) return { level:'high', label:'High Risk', color:'#ff4b4b', cls:'r-high' };
+  return                  { level:'vhigh', label:'⚠ PPH Predicted — Critical Risk', color:'#ff2222', cls:'r-vhigh' };
+}
+
+/* ── LocalStorage ── */
+const LS_KEY = 'pph_v2_records';
+const loadRec = () => { try { return JSON.parse(localStorage.getItem(LS_KEY)||'[]'); } catch { return []; } };
+const saveRec = r => { try { localStorage.setItem(LS_KEY, JSON.stringify(r)); } catch {} };
+
+/* ── Defaults ── */
+const DEFAULTS = {
+  age:28, gestAge:39, gravida:2, parity:1, laborHrs:8, birthWt:3200,
+  hemoglobin:11.5, prevCS:false, atony:false, previa:false, oxytocin:false,
+  delivery:'vaginal', actualOutcome:'', notes:'', patientId:''
+};
+
+/* ═══════════════════════════════════════════════════════
+   LANDING PAGE
+═══════════════════════════════════════════════════════ */
+function LandingPage({ onEnter }) {
+  return (
+    <div className="landing">
+      <div className="landing-bg"/>
+      <div className="grid-overlay"/>
+
+      <nav className="landing-nav">
+        <div className="nav-brand">
+          <div className="dot"/>
+          PPH<span>Predict</span>
+        </div>
+        <div className="nav-pills">
+          <button className="nav-pill active" onClick={onEnter}>Launch App</button>
+          <a className="nav-pill" href="https://github.com/yourusername/pph-predict" target="_blank" rel="noopener noreferrer" style={{textDecoration:'none'}}>GitHub</a>
+        </div>
+      </nav>
+
+      <section className="landing-hero">
+        <div className="hero-badge">
+          <div className="dot"/>
+          AI-Powered Clinical Decision Support
+        </div>
+
+        <h1 className="hero-title">
+          Predict Postpartum
+          <span className="line2">Hemorrhage Risk</span>
+          <span className="line3">Before it happens.</span>
+        </h1>
+
+        <p className="hero-sub">
+          A machine-learning risk stratification prototype with clinically-grounded parameters.
+          Input 12 clinical parameters and get an instant, interpretable PPH probability score.
+        </p>
+
+        <div className="hero-cta">
+          <button className="btn-hero-primary" onClick={onEnter}>
+            ⚡ Open Prediction Tool
+          </button>
+          <button className="btn-hero-ghost" onClick={() => onEnter('model')}>
+            📊 View Model Details
+          </button>
+        </div>
+
+        <div className="hero-stats">
+          {[
+            { val: '12',       lbl: 'Clinical Features' },
+            { val: 'LR',       lbl: 'Algorithm' },
+            { val: 'Simulated', lbl: 'Parameters' },
+            { val: 'Prototype', lbl: 'Status' },
+          ].map(s => (
+            <div className="hero-stat" key={s.lbl}>
+              <span className="hero-stat-val">{s.val}</span>
+              <div className="hero-stat-lbl">{s.lbl}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="features-section">
+        <div className="features-grid">
+          {[
+            { icon: '🧠', title: 'Clinically-Grounded Model', desc: 'Logistic regression with parameters derived from published obstetric literature. Prototype with simulated parameters — not trained on a real patient dataset.' },
+            { icon: '⚡', title: 'Instant Risk Scoring', desc: 'Enter 12 clinical parameters and receive an immediate probability estimate with contributing factor breakdown.' },
+            { icon: '📋', title: 'Training Data Logger', desc: 'Every prediction is optionally saved with actual outcomes, building a local dataset you can export to CSV for model retraining.' },
+            { icon: '🔍', title: 'Explainable AI', desc: 'Each prediction shows the top contributing factors — which clinical features are driving the risk estimate up or down.' },
+            { icon: '📊', title: 'Model Transparency', desc: 'Full performance metrics, confusion matrix, feature importances, and architecture details available in the Model Details tab.' },
+            { icon: '🔒', title: 'Privacy by Design', desc: 'All computation runs entirely in your browser. No patient data is ever transmitted or stored on any server.' },
+          ].map(f => (
+            <div className="feature-card" key={f.title}>
+              <span className="feature-icon">{f.icon}</span>
+              <div className="feature-title">{f.title}</div>
+              <p className="feature-desc">{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+   PREDICTION PAGE
+═══════════════════════════════════════════════════════ */
+function PredictPage({ onSave }) {
+  const [form, setForm] = useState({...DEFAULTS, patientId:`PT-${Date.now().toString().slice(-6)}`});
+  const [errors, setErrors] = useState({});
+  const [result, setResult] = useState(null);
+  const [saved, setSaved] = useState(false);
+
+  const set = (k, v) => { setForm(f => ({...f, [k]:v})); setErrors(e => ({...e, [k]:false})); if(result) setResult(null); setSaved(false); };
+
+  const validate = () => {
+    const e = {};
+    if (!form.age || form.age < 10 || form.age > 60)     e.age = true;
+    if (!form.gestAge || form.gestAge < 20 || form.gestAge > 45) e.gestAge = true;
+    if (form.gravida < 1 || form.gravida > 15)           e.gravida = true;
+    if (form.parity < 0 || form.parity > 14)             e.parity = true;
+    if (!form.laborHrs || form.laborHrs < 0 || form.laborHrs > 72) e.laborHrs = true;
+    if (!form.birthWt || form.birthWt < 300 || form.birthWt > 6000) e.birthWt = true;
+    if (!form.hemoglobin || form.hemoglobin < 4 || form.hemoglobin > 18) e.hemoglobin = true;
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const run = () => {
+    if (!validate()) return;
+    const prob = predictProb(form);
+    const risk = getRisk(prob);
+    const factors = MODEL.features.map((name, i) => {
+      const rawVal = [form.age,form.gestAge,form.gravida,form.parity,form.prevCS?1:0,
+                      form.atony?1:0,form.previa?1:0,form.laborHrs,form.oxytocin?1:0,
+                      form.birthWt,form.hemoglobin,form.delivery==='vaginal'?1:0][i];
+      const contrib = ((rawVal - MODEL.means[i]) / MODEL.stds[i]) * MODEL.coefs[i];
+      return { name, raw: rawVal, contrib };
+    }).sort((a,b) => Math.abs(b.contrib) - Math.abs(a.contrib)).slice(0, 6);
+    setResult({ prob, risk, factors });
+  };
+
+  const save = () => {
+    if (!result) return;
+    const rec = {
+      id: Date.now(),
+      patientId: form.patientId || `PT-${Date.now().toString().slice(-6)}`,
+      timestamp: new Date().toISOString(),
+      age: form.age, gestAge: form.gestAge, hemoglobin: form.hemoglobin,
+      laborHrs: form.laborHrs, atony: form.atony, delivery: form.delivery,
+      gravida: form.gravida, parity: form.parity, prevCS: form.prevCS,
+      previa: form.previa, oxytocin: form.oxytocin, birthWt: form.birthWt,
+      prob: result.prob,
+      predicted: result.prob >= MODEL.threshold ? 1 : 0,
+      actual: form.actualOutcome !== '' ? parseInt(form.actualOutcome) : null,
+      notes: form.notes
+    };
+    const existing = loadRec();
+    const updated = [rec, ...existing];
+    saveRec(updated);
+    onSave(updated);
+    setSaved(true);
+  };
+
+  const bools = [
+    { k:'atony',    label:'Uterine Atony',        desc:'Failure of uterus to contract' },
+    { k:'previa',   label:'Placenta Previa',       desc:'Placenta covering cervical os' },
+    { k:'prevCS',   label:'Previous C-Section',    desc:'Prior caesarean delivery' },
+    { k:'oxytocin', label:'Oxytocin Use',          desc:'Augmentation or induction' },
+  ];
+
+  return (
+    <div className="fade-up">
+      <div className="page-header">
+        <h1 className="page-title">New Prediction</h1>
+        <p className="page-sub">Enter clinical parameters to compute PPH risk probability</p>
+      </div>
+
+      <div className="alert-banner alert-info">
+        <span>ℹ</span>
+        <span>For clinical decision support only. Always apply professional medical judgment. Prototype model with simulated parameters — not validated on real patient data.</span>
+      </div>
+
+      <div className="card">
+        <div className="card-title">Patient identifier</div>
+        <div style={{display:'flex', gap:12, alignItems:'flex-end'}}>
+          <div className="field" style={{flex:1}}>
+            <label>Patient ID / Case Number</label>
+            <input type="text" value={form.patientId} onChange={e => set('patientId', e.target.value)}
+              placeholder="PT-XXXXXX"
+              style={{background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:'var(--r-sm)',color:'var(--text)',padding:'8px 11px',outline:'none',fontFamily:'var(--font-mono)',fontSize:13,width:'100%'}}/>
+          </div>
+          <button className="btn btn-ghost" style={{fontSize:11, padding:'8px 12px', marginBottom:0, fontFamily:'var(--font-mono)'}}
+            onClick={() => set('patientId', `PT-${Date.now().toString().slice(-6)}`)}>
+            ↻ Auto
+          </button>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-title">Patient demographics & obstetric history</div>
+        <div className="form-grid-3">
+          {[
+            {k:'age',       label:'Maternal Age',           unit:'yrs',  min:10, max:60,   step:1},
+            {k:'gestAge',   label:'Gestational Age',        unit:'wks',  min:20, max:45,   step:1},
+            {k:'gravida',   label:'Gravida',                unit:'',     min:1,  max:15,   step:1},
+            {k:'parity',    label:'Parity',                 unit:'',     min:0,  max:14,   step:1},
+            {k:'laborHrs',  label:'Labor Duration',         unit:'hrs',  min:0,  max:72,   step:0.5},
+            {k:'hemoglobin',label:'Hemoglobin Pre-op',      unit:'g/dL', min:4,  max:18,   step:0.1},
+          ].map(f => (
+            <div className="field" key={f.k}>
+              <label>{f.label} <span>{f.unit}</span></label>
+              <input type="number" className={errors[f.k] ? 'err' : ''}
+                value={form[f.k]} min={f.min} max={f.max} step={f.step}
+                onChange={e => set(f.k, parseFloat(e.target.value))}/>
+            </div>
+          ))}
+        </div>
+
+        <div className="form-grid" style={{marginTop:14}}>
+          <div className="field">
+            <label>Birth Weight <span>grams</span></label>
+            <input type="number" className={errors.birthWt ? 'err' : ''}
+              value={form.birthWt} min={300} max={6000} step={50}
+              onChange={e => set('birthWt', parseFloat(e.target.value))}/>
+          </div>
+          <div className="field">
+            <label>Delivery Mode</label>
+            <div className="toggle-grp">
+              {['vaginal','cesarean'].map(m => (
+                <button key={m} className={`t-btn ${form.delivery===m?'on':''}`}
+                  onClick={() => set('delivery', m)}
+                  style={{textTransform:'capitalize'}}>{m}</button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-title">Risk factors</div>
+        <div className="form-grid">
+          {bools.map(({k, label, desc}) => (
+            <div key={k} onClick={() => set(k, !form[k])} style={{
+              cursor:'pointer', padding:'12px 14px', borderRadius:'var(--r-sm)',
+              background: form[k] ? 'rgba(255,75,75,.07)' : 'var(--bg3)',
+              border: `1px solid ${form[k] ? 'var(--red-b)' : 'var(--border)'}`,
+              transition:'all .15s', display:'flex', alignItems:'center', gap:12
+            }}>
+              <div style={{
+                width:18, height:18, borderRadius:4, flexShrink:0,
+                background: form[k] ? 'var(--red)' : 'var(--bg)',
+                border: `1px solid ${form[k] ? 'var(--red)' : 'var(--border2)'}`,
+                display:'flex', alignItems:'center', justifyContent:'center',
+                fontSize:11, color:'#fff', transition:'all .15s'
+              }}>{form[k] ? '✓' : ''}</div>
+              <div>
+                <div style={{fontSize:13, color: form[k] ? 'var(--text)' : 'var(--text2)', fontWeight: form[k] ? 500 : 400}}>{label}</div>
+                <div style={{fontSize:11, color:'var(--text3)'}}>{desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{display:'flex', gap:10, marginBottom:20}}>
+        <button className="btn btn-run" onClick={run} style={{flex:1, justifyContent:'center'}}>
+          ⚡ Run Prediction
+        </button>
+        <button className="btn btn-ghost" onClick={() => { setForm({...DEFAULTS, patientId:`PT-${Date.now().toString().slice(-6)}`}); setResult(null); setErrors({}); setSaved(false); }}>
+          Reset
+        </button>
+      </div>
+
+      {result && (
+        <div className={`result-panel ${result.risk.cls}`}>
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', flexWrap:'wrap', gap:12}}>
+            <div>
+              <div className="result-prob">{(result.prob*100).toFixed(1)}%</div>
+              <div className="result-label" style={{color:result.risk.color}}>{result.risk.label}</div>
+              <div style={{fontSize:11, color:'rgba(255,255,255,.4)', marginTop:3}}>
+                Threshold: {(MODEL.threshold*100).toFixed(0)}% · {result.prob >= MODEL.threshold ? '⚠ PPH Predicted' : '✓ Low Probability'}
+              </div>
+            </div>
+            <div style={{textAlign:'right'}}>
+              <div style={{fontSize:10, color:'rgba(255,255,255,.35)', marginBottom:5, fontFamily:'var(--font-mono)', letterSpacing:'.06em', textTransform:'uppercase'}}>Risk Gauge</div>
+              <div style={{width:150}}>
+                <div className="result-bar-bg">
+                  <div className="result-bar" style={{width:`${result.prob*100}%`, background:result.risk.color}}/>
+                </div>
+                <div style={{display:'flex', justifyContent:'space-between', fontSize:10, color:'rgba(255,255,255,.25)', marginTop:3}}>
+                  <span>0%</span><span>50%</span><span>100%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="divider" style={{borderColor:'rgba(255,255,255,.06)'}}/>
+
+          <div style={{fontSize:10, color:'rgba(255,255,255,.4)', marginBottom:8, fontFamily:'var(--font-mono)', textTransform:'uppercase', letterSpacing:'.07em'}}>Top Contributing Factors</div>
+          <div>
+            {result.factors.map((f,i) => (
+              <div key={i} className="factor-row">
+                <span className="factor-name">{f.name}</span>
+                <span style={{fontSize:10, color:'rgba(255,255,255,.25)'}}>{typeof f.raw === 'boolean' ? (f.raw?'Yes':'No') : f.raw}</span>
+                <span className="factor-val" style={{color: f.contrib>0.08?'var(--red)':f.contrib<-0.08?'var(--green)':'var(--text3)'}}>
+                  {f.contrib>0?'+':''}{f.contrib.toFixed(3)}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <div className="divider" style={{borderColor:'rgba(255,255,255,.06)'}}/>
+
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14}}>
+            <div className="field">
+              <label style={{color:'rgba(255,255,255,.45)'}}>Actual outcome <span style={{color:'rgba(255,255,255,.25)'}}>for training</span></label>
+              <div className="toggle-grp" style={{border:'1px solid rgba(255,255,255,.1)'}}>
+                {[{v:'',l:'Unknown'},{v:'0',l:'No PPH'},{v:'1',l:'PPH'}].map(o => (
+                  <button key={o.v} className={`t-btn ${form.actualOutcome===o.v?'on':''}`}
+                    onClick={() => set('actualOutcome', o.v)}
+                    style={{
+                      fontSize:11,
+                      background: form.actualOutcome===o.v
+                        ? (o.v==='1'?'#8a1010':o.v==='0'?'#0a5c35':'var(--accent2)')
+                        : 'rgba(255,255,255,.04)'
+                    }}>{o.l}</button>
+                ))}
+              </div>
+            </div>
+            <div className="field">
+              <label style={{color:'rgba(255,255,255,.45)'}}>Clinical notes</label>
+              <input type="text" value={form.notes} onChange={e => set('notes', e.target.value)}
+                placeholder="Optional notes..."
+                style={{background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.1)', borderRadius:'var(--r-sm)', color:'var(--text)', padding:'8px 11px', outline:'none', fontFamily:'var(--font)', fontSize:13, width:'100%'}}/>
+            </div>
+          </div>
+
+          <button className={`btn ${saved?'btn-ghost':'btn-green'}`} onClick={save} style={{width:'100%', justifyContent:'center', padding:'11px'}}>
+            {saved ? '✓ Saved to dataset' : '💾 Save to training dataset'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+   TRAINING DATA PAGE
+═══════════════════════════════════════════════════════ */
+function DataPage({ records, onUpdate }) {
+  const [filter, setFilter] = useState('all');
+  const [search, setSearch] = useState('');
+
+  const filtered = records.filter(r => {
+    if (filter==='pph'      && r.predicted!==1)     return false;
+    if (filter==='nopph'    && r.predicted!==0)     return false;
+    if (filter==='labelled' && r.actual===null)     return false;
+    if (search && !r.patientId.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
+
+  const exportCSV = () => {
+    if (!records.length) return;
+    const cols = Object.keys(records[0]);
+    const csv = [cols.join(','), ...records.map(r => cols.map(c => JSON.stringify(r[c]??'')).join(','))].join('\n');
+    const a = document.createElement('a');
+    const url = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
+    a.href = url;
+    a.download = `pph_training_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+  };
+
+  const clearAll = () => {
+    if (window.confirm('Delete all records? This cannot be undone.')) { saveRec([]); onUpdate([]); }
+  };
+
+  const del = id => { const u = records.filter(r => r.id!==id); saveRec(u); onUpdate(u); };
+  const pphN = records.filter(r => r.predicted===1).length;
+  const labN = records.filter(r => r.actual!==null).length;
+
+  return (
+    <div className="fade-up">
+      <div className="page-header">
+        <h1 className="page-title">Training Dataset</h1>
+        <p className="page-sub">Saved predictions — export to CSV to retrain your model</p>
+      </div>
+
+      <div className="stat-grid">
+        <div className="stat-card"><div className="stat-val">{records.length}</div><div className="stat-lbl">Total records</div></div>
+        <div className="stat-card"><div className="stat-val" style={{color:'var(--red)'}}>{pphN}</div><div className="stat-lbl">PPH predicted</div></div>
+        <div className="stat-card"><div className="stat-val" style={{color:'var(--green)'}}>{records.length-pphN}</div><div className="stat-lbl">No PPH</div></div>
+        <div className="stat-card"><div className="stat-val" style={{color:'var(--amber)'}}>{labN}</div><div className="stat-lbl">Labelled</div></div>
+      </div>
+
+      <div style={{display:'flex', gap:8, marginBottom:14, flexWrap:'wrap', alignItems:'center'}}>
+        <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search patient ID..."
+          style={{background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:'var(--r-sm)',color:'var(--text)',padding:'7px 11px',outline:'none',fontFamily:'var(--font)',fontSize:12,width:180}}/>
+        <div style={{display:'flex', gap:4}}>
+          {[{v:'all',l:'All'},{v:'pph',l:'PPH'},{v:'nopph',l:'No PPH'},{v:'labelled',l:'Labelled'}].map(f => (
+            <button key={f.v} className="btn btn-ghost"
+              style={{padding:'6px 10px', fontSize:11, background:filter===f.v?'var(--bg4)':'transparent', borderColor:filter===f.v?'var(--border2)':'var(--border)'}}
+              onClick={() => setFilter(f.v)}>{f.l}</button>
+          ))}
+        </div>
+        <div style={{marginLeft:'auto', display:'flex', gap:8}}>
+          <button className="btn btn-green" onClick={exportCSV} disabled={!records.length} style={{fontSize:12}}>⬇ Export CSV</button>
+          <button className="btn btn-ghost" onClick={clearAll} disabled={!records.length} style={{color:'var(--red)', borderColor:'var(--red-b)', fontSize:12}}>🗑 Clear</button>
+        </div>
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="empty">
+          <div className="empty-icon">📋</div>
+          <div className="empty-title">No records yet</div>
+          <div>Run a prediction and save it — it'll appear here.</div>
+        </div>
+      ) : (
+        <div className="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th>Patient ID</th><th>Date</th><th>Age</th><th>GA</th>
+              <th>Hb</th><th>Labor</th><th>Atony</th><th>Mode</th>
+              <th>Prob %</th><th>Predicted</th><th>Actual</th><th>Notes</th><th></th>
+            </tr></thead>
+            <tbody>
+              {filtered.map(r => (
+                <tr key={r.id}>
+                  <td style={{fontFamily:'var(--font-mono)',fontSize:11}}>{r.patientId}</td>
+                  <td style={{color:'var(--text3)',fontSize:11}}>{new Date(r.timestamp).toLocaleDateString()}</td>
+                  <td>{r.age}</td>
+                  <td>{r.gestAge}w</td>
+                  <td style={{fontFamily:'var(--font-mono)'}}>{r.hemoglobin}</td>
+                  <td>{r.laborHrs}h</td>
+                  <td>{r.atony ? <span style={{color:'var(--red)'}}>Yes</span> : <span style={{color:'var(--text3)'}}>No</span>}</td>
+                  <td style={{textTransform:'capitalize'}}>{r.delivery}</td>
+                  <td style={{fontFamily:'var(--font-mono)',fontWeight:500,color:r.prob>MODEL.threshold?'var(--red)':r.prob>0.4?'var(--amber)':'var(--green)'}}>
+                    {(r.prob*100).toFixed(1)}%
+                  </td>
+                  <td><span className={r.predicted?'badge badge-pph':'badge badge-nopph'}>{r.predicted?'PPH':'No PPH'}</span></td>
+                  <td>{r.actual!==null
+                    ? <span className={r.actual?'badge badge-pph':'badge badge-nopph'}>{r.actual?'PPH':'No PPH'}</span>
+                    : <span className="badge badge-pending">Pending</span>}</td>
+                  <td style={{color:'var(--text3)',fontSize:11,maxWidth:100,overflow:'hidden',textOverflow:'ellipsis'}}>{r.notes||'—'}</td>
+                  <td><button onClick={() => del(r.id)} style={{background:'none',border:'none',color:'var(--text3)',cursor:'pointer',fontSize:13,padding:'2px 5px'}} title="Delete">✕</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+   MODEL DETAILS PAGE
+═══════════════════════════════════════════════════════ */
+function ModelPage() {
+  const metrics = [
+    {name:'AUROC',       val:0.9505, color:'#c084fc'},
+    {name:'AUC-PR',      val:0.9086, color:'#00d4ff'},
+    {name:'Recall',      val:0.7766, color:'#00e676'},
+    {name:'Precision',   val:0.8760, color:'#ffb547'},
+    {name:'F1 Score',    val:0.8233, color:'#ff9a44'},
+    {name:'Specificity', val:0.9549, color:'#44dba6'},
+  ];
+  const feats = Object.entries(MODEL.featureImportance).sort((a,b)=>b[1]-a[1]);
+  const maxFI = feats[0][1];
+  const { tn, fp, fn, tp } = MODEL.cm;
+
+  return (
+    <div className="fade-up">
+      <div className="page-header">
+        <h1 className="page-title">Model Details</h1>
+        <p className="page-sub">Logistic Regression — prototype with simulated parameters · not trained on real patient data</p>
+      </div>
+
+      <div className="alert-banner alert-warn">
+        <span>🚧</span>
+        <span><strong>Prototype model.</strong> All metrics and coefficients below are simulated / illustrative. They are derived from published PPH literature (RCOG GTG-52, 2016), not from training on a real patient dataset. Do not cite these numbers as validated performance.</span>
+      </div>
+
+      <div className="card">
+        <div className="card-title">Performance Metrics — Simulated (illustrative only, not from real data)</div>
+        {metrics.map(m => (
+          <div className="metric-row" key={m.name}>
+            <span className="metric-name">{m.name}</span>
+            <div className="metric-bar-bg">
+              <div className="metric-bar" style={{width:`${m.val*100}%`, background:m.color}}/>
+            </div>
+            <span className="metric-val">{m.val.toFixed(4)}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="card">
+        <div className="card-title">Simulated Feature Importances (illustrative — derived from published PPH literature, not real training)</div>
+        {feats.map(([name, val]) => (
+          <div className="metric-row" key={name}>
+            <span className="metric-name" style={{fontSize:11}}>{name}</span>
+            <div className="metric-bar-bg">
+              <div className="metric-bar" style={{width:`${(val/maxFI*100).toFixed(1)}%`, background: val>0.1?'var(--red)':val>0.05?'var(--amber)':'var(--text3)'}}/>
+            </div>
+            <span className="metric-val">{(val*100).toFixed(1)}%</span>
+          </div>
+        ))}
+        <div style={{fontSize:11, color:'var(--text3)', marginTop:10}}>Simulated importances based on established PPH risk factor literature (e.g. RCOG Green-top Guideline No. 52). Uterine Atony is the dominant real-world predictor at ~46–50% of hemorrhage cases.</div>
+      </div>
+
+      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:14}}>
+        <div className="card">
+          <div className="card-title">Confusion Matrix — Illustrative Only (not from real test set)</div>
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginTop:8}}>
+            {[
+              {label:'True Negative',  val:tn, color:'var(--green)', bg:'var(--green-bg)'},
+              {label:'False Positive', val:fp, color:'var(--amber)', bg:'var(--amber-bg)'},
+              {label:'False Negative', val:fn, color:'var(--red)',   bg:'var(--red-bg)'},
+              {label:'True Positive',  val:tp, color:'var(--accent)',bg:'rgba(0,212,255,.06)'},
+            ].map(c => (
+              <div key={c.label} style={{background:c.bg, borderRadius:8, padding:'13px', textAlign:'center'}}>
+                <div style={{fontSize:26, fontWeight:500, fontFamily:'var(--font-mono)', color:c.color}}>{c.val}</div>
+                <div style={{fontSize:10, color:c.color, marginTop:2, opacity:.7}}>{c.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="card">
+          <div className="card-title">Architecture</div>
+          <div className="info-grid">
+            {[
+              {l:'Algorithm',      v:'Logistic Regression'},
+              {l:'Dataset',        v:'None (prototype)'},
+              {l:'Features',       v:'12 clinical'},
+              {l:'CV Strategy',    v:'5-fold stratified'},
+              {l:'Class Weight',   v:'Balanced'},
+              {l:'Threshold',      v:`${(MODEL.threshold*100).toFixed(1)}% (max F1)`},
+              {l:'Regularisation', v:'L2, C=0.5'},
+              {l:'PPH prevalence', v:'29.1%'},
+            ].map(i => (
+              <div className="info-item" key={i.l}>
+                <div className="info-item-label">{i.l}</div>
+                <div className="info-item-val">{i.v}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-title">Dataset Summary — Target Spec (for future real training)</div>
+        <div className="info-grid">
+          {[
+            {l:'Status',         v:'No real dataset yet'},
+            {l:'Recommended Size',v:'≥500 records to start'},
+            {l:'Suggested Source',v:'MIMIC-III / local EMR'},
+            {l:'Reference',      v:'RCOG GTG-52 (2016)'},
+            {l:'Missing Values', v:'Handle with imputation'},
+            {l:'Delivery Modes', v:'Vaginal + Cesarean'},
+            {l:'Age Range',      v:'18–45 years (typical)'},
+            {l:'Next Step',      v:'Collect & label real data'},
+          ].map(i => (
+            <div className="info-item" key={i.l}>
+              <div className="info-item-label">{i.l}</div>
+              <div className="info-item-val">{i.v}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+   READINGS & DEPLOYMENT PAGE
+═══════════════════════════════════════════════════════ */
+function ReadingsPage() {
+  return (
+    <div className="fade-up">
+      <div className="page-header">
+        <h1 className="page-title">Readings & Deployment Guide</h1>
+        <p className="page-sub">How to understand the output, post on LinkedIn, and publish on GitHub</p>
+      </div>
+
+      <div className="alert-banner alert-warn">
+        <span>📌</span>
+        <span>This guide is written for sharing your work as an AI/ML project — not for clinical deployment without regulatory approval.</span>
+      </div>
+
+      <div className="readings-grid">
+
+        <div className="reading-card">
+          <div className="reading-step">Reading 01</div>
+          <div className="reading-title">Understanding the Output</div>
+          <div className="reading-body">
+            <p>The tool outputs a <strong>probability percentage</strong> (0–100%) representing the predicted likelihood of postpartum hemorrhage.</p>
+            <br/>
+            <ul>
+              <li><strong style={{color:'var(--green)'}}>0–25%</strong> — Low risk. Standard monitoring.</li>
+              <li><strong style={{color:'var(--amber)'}}>25–50%</strong> — Moderate. Heightened vigilance.</li>
+              <li><strong style={{color:'var(--red)'}}>50–74%</strong> — High risk. Prepare blood products.</li>
+              <li><strong style={{color:'#ff2222'}}>≥74.4%</strong> — Critical. PPH predicted. Activate protocol.</li>
+            </ul>
+            <br/>
+            <p>The <strong>contributing factors</strong> section shows which clinical inputs are driving the score up (<span style={{color:'var(--red)'}}>positive contribution</span>) or down (<span style={{color:'var(--green)'}}>protective</span>).</p>
+          </div>
+        </div>
+
+        <div className="reading-card">
+          <div className="reading-step">Reading 02</div>
+          <div className="reading-title">Key Model Metrics Explained</div>
+          <div className="reading-body">
+            <p>These metrics are <strong>illustrative targets</strong> for what a well-trained PPH model should aim for, based on published literature. They are <strong>not from a real trained model</strong>.</p>
+            <br/>
+            <ul>
+              <li><code>AUROC ~0.85–0.95</code> — A real model should discriminate PPH vs non-PPH at this level (simulated value shown as illustration).</li>
+              <li><code>Precision</code> — Of predicted PPH cases, how many are true positives. Aim for ≥80% in clinical tools.</li>
+              <li><code>Recall (Sensitivity)</code> — How many real PPH cases are caught. High recall is critical to avoid missed cases.</li>
+              <li><code>Specificity</code> — Avoidance of false alarms. Balances clinical workload.</li>
+              <li><code>F1</code> — Harmonic mean of precision and recall. Useful for imbalanced classes.</li>
+              <li><code>AUC-PR</code> — Preferred over AUROC for class-imbalanced datasets like PPH (≈20–30% prevalence).</li>
+            </ul>
+            <br/>
+            <p>To get <strong>real metrics</strong>: train with scikit-learn on actual data and replace the MODEL constants in this file.</p>
+          </div>
+        </div>
+
+        <div className="reading-card">
+          <div className="reading-step">Reading 03</div>
+          <div className="reading-title">Saving & Exporting Data</div>
+          <div className="reading-body">
+            <p>After each prediction, you can record the actual clinical outcome. Navigate to <strong>Training Dataset</strong> in the sidebar and click <strong>Export CSV</strong> to download all saved records.</p>
+            <br/>
+            <p>This CSV can be used to retrain the model in Python:</p>
+            <br/>
+            <ul>
+              <li>Load with <code>pd.read_csv()</code></li>
+              <li>Use <code>XGBClassifier</code> or <code>LogisticRegression</code></li>
+              <li>Replace the model constants in this file's <code>MODEL</code> object</li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="reading-card">
+          <div className="reading-step">Reading 04</div>
+          <div className="reading-title">Publishing on GitHub</div>
+          <div className="reading-body">
+            <p>Steps to publish this as a GitHub project:</p>
+            <br/>
+            <ul>
+              <li>1. Create a new repo: <code>pph-predict</code></li>
+              <li>2. Upload this <code>.html</code> file as <code>index.html</code></li>
+              <li>3. Upload your dataset as <code>data/pph_dataset.csv</code> (when you have real data)</li>
+              <li>4. Add a <code>README.md</code> (template below)</li>
+              <li>5. Enable <strong>GitHub Pages</strong> under Settings → Pages → Deploy from branch (main)</li>
+              <li>6. Your live URL: <code>https://yourusername.github.io/pph-predict</code></li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="reading-card">
+          <div className="reading-step">Reading 05</div>
+          <div className="reading-title">README.md Template</div>
+          <div className="reading-body">
+            <p>Paste this into your <code>README.md</code> on GitHub:</p>
+            <br/>
+            <div style={{background:'var(--bg)',borderRadius:6,padding:'10px 12px',fontFamily:'var(--font-mono)',fontSize:11,color:'var(--text2)',lineHeight:1.7}}>
+              <div style={{color:'var(--accent)'}}># PPH Predict 🩺</div>
+              <div>AI-powered postpartum hemorrhage risk tool</div>
+              <br/>
+              <div style={{color:'var(--accent)'}}>## Model</div>
+              <div>- Algorithm: Logistic Regression</div>
+              <div>- Dataset: Prototype with simulated parameters (no real patient data yet)</div>
+              <div>- Parameters: Derived from published PPH literature (RCOG GTG-52)</div>
+              <div>- Status: UI complete — seeking clinical dataset for real training</div>
+              <br/>
+              <div style={{color:'var(--accent)'}}>## Roadmap</div>
+              <div>- [ ] Obtain IRB-approved or public dataset (MIMIC, PhysioNet)</div>
+              <div>- [ ] Run scikit-learn training pipeline</div>
+              <div>- [ ] Replace MODEL constants with real coefficients + metrics</div>
+              <br/>
+              <div style={{color:'var(--accent)'}}>## Live Demo</div>
+              <div>https://yourusername.github.io/pph-predict</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="reading-card">
+          <div className="reading-step">Reading 06</div>
+          <div className="reading-title">LinkedIn Post Template</div>
+          <div className="reading-body">
+            <p>Use this as a starting point for your LinkedIn post:</p>
+            <br/>
+            <div style={{background:'var(--bg)',borderRadius:6,padding:'10px 12px',fontSize:12,color:'var(--text2)',lineHeight:1.7,fontStyle:'italic'}}>
+              "Excited to share PPHPredict — a clinical AI prototype I built to predict postpartum hemorrhage risk before delivery.<br/><br/>
+              🧠 Logistic regression with parameters grounded in obstetric literature (RCOG GTG-52)<br/>
+              📋 Full-stack: 12 clinical features, explainable AI, training data logger, CSV export<br/>
+              ⚡ Runs entirely in the browser — zero server, zero data leakage<br/>
+              🔍 Explainable AI: shows which factors are driving each prediction<br/>
+              🚧 Prototype with simulated parameters — next step is training on real patient data<br/><br/>
+              Looking for collaborators with access to obstetric datasets or clinical AI experience.<br/><br/>
+              Live demo → [your GitHub Pages link]<br/><br/>
+              #HealthcareAI #MachineLearning #ClinicalAI #ObstetricsAI"
+            </div>
+            <br/>
+            <p>Add a screen recording or screenshot of the tool for maximum engagement. Tag relevant hashtags: <span className="tag">#HealthcareAI</span><span className="tag">#MachineLearning</span><span className="tag">#ClinicalDecisionSupport</span></p>
+          </div>
+        </div>
+
+        <div className="reading-card" style={{gridColumn:'1/-1'}}>
+          <div className="reading-step">Reading 07</div>
+          <div className="reading-title">Limitations & Clinical Disclaimer</div>
+          <div className="reading-body">
+            <p>Always include this in your README and post:</p>
+            <br/>
+            <div style={{background:'rgba(255,181,71,.05)',border:'1px solid #4a3200',borderRadius:6,padding:'12px',fontSize:12,color:'var(--amber)',lineHeight:1.7}}>
+              ⚠ This tool is a prototype with simulated parameters intended for educational and portfolio purposes only. It has not been trained on real patient data, has no validated clinical performance metrics, and is not a validated clinical device. It should not replace professional medical judgment or be used for clinical decision-making without appropriate regulatory approval, institutional validation, and training on real IRB-approved patient data.
+            </div>
+            <br/>
+            <p>Current limitations: model uses simulated coefficients derived from literature, not a real patient dataset; no AUROC or F1 metrics are validated; no external validation cohort; threshold requires calibration after real training; does not account for all PPH risk factors.</p>
+            <br/>
+            <div style={{background:'rgba(0,212,255,.05)',border:'1px solid var(--accent3)',borderRadius:6,padding:'12px',fontSize:12,color:'var(--accent)',lineHeight:1.7}}>
+              ✅ <strong>To make this real:</strong> (1) Obtain an IRB-approved dataset or use MIMIC-III/PhysioNet. (2) Run the scikit-learn pipeline (LogisticRegression + StandardScaler). (3) Replace MODEL.coefs, MODEL.means, MODEL.stds, MODEL.threshold, and MODEL.metrics with real values. (4) Document your dataset source in the README.
+            </div>
+          </div>
+        </div>
+
+        <div className="reading-card" style={{gridColumn:'1/-1'}}>
+          <div className="reading-step">Reading 08</div>
+          <div className="reading-title">Path to a Real Validated Model</div>
+          <div className="reading-body">
+            <p>Here is the concrete roadmap to turn this prototype into a scientifically credible tool:</p>
+            <br/>
+            <ul>
+              <li><strong>Step 1 — Dataset:</strong> Apply for MIMIC-III access at <code>physionet.org</code> (free, requires brief CITI training). Filter for obstetric admissions (ICD codes O67, O72). Extract the 12 features this tool supports. Target ≥500 records to start.</li>
+              <li><strong>Step 2 — Training pipeline:</strong> Use <code>sklearn.linear_model.LogisticRegression</code> with <code>StandardScaler</code>, <code>class_weight='balanced'</code>, and 5-fold stratified CV. Save <code>coef_</code>, <code>intercept_</code>, <code>scaler.mean_</code>, <code>scaler.scale_</code>.</li>
+              <li><strong>Step 3 — Real metrics:</strong> Compute AUROC, F1, precision, recall on a held-out test set. Report them honestly — even an AUROC of 0.75 from real data is more valuable than a simulated 0.95.</li>
+              <li><strong>Step 4 — Clinical reference:</strong> Cite your data source and a reference (e.g., Sentilhes et al. 2016, or RCOG GTG-52, 2016). This adds credibility for clinicians and peer reviewers.</li>
+              <li><strong>Step 5 — Update this file:</strong> Replace <code>MODEL.coefs</code>, <code>MODEL.means</code>, <code>MODEL.stds</code>, <code>MODEL.metrics</code> and <code>MODEL.cm</code> with real values. Remove all "simulated" labels and update the disclaimer.</li>
+            </ul>
+            <br/>
+            <div style={{background:'rgba(0,230,118,.05)',border:'1px solid var(--green-b)',borderRadius:6,padding:'12px',fontSize:12,color:'var(--green)',lineHeight:1.7}}>
+              🔥 Even 200 real labelled records will transform this from a UI demo into a legitimate AI research project. The engineering is already done — you just need the data.
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════════════════ */
+function Toast({ msg, icon, onClose }) {
+  useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t); }, [onClose]);
+  return <div className="toast"><span>{icon}</span><span>{msg}</span></div>;
+}
+
+/* ═══════════════════════════════════════════════════════
+   MAIN APP
+═══════════════════════════════════════════════════════ */
+function App() {
+  const [screen, setScreen] = useState('landing'); // 'landing' | 'app'
+  const [page,   setPage]   = useState('predict');
+  const [records, setRec]   = useState(loadRec);
+  const [toast,  setToast]  = useState(null);
+
+  const enterApp = (targetPage) => {
+    setScreen('app');
+    if (targetPage) setPage(targetPage);
+  };
+
+  const handleSave = useCallback(recs => {
+    setRec(recs);
+    setToast({ msg:'Record saved to training data', icon:'💾' });
+  }, []);
+
+  if (screen === 'landing') return <LandingPage onEnter={enterApp}/>;
+
+  const nav = [
+    { id:'predict', icon:'⚡', label:'New Prediction',  badge: null },
+    { id:'data',    icon:'📋', label:'Training Data',   badge: records.length || null },
+    { id:'model',   icon:'🧠', label:'Model Details',   badge: null },
+    { id:'readings',icon:'📖', label:'Readings & Deploy',badge: null },
+  ];
+
+  return (
+    <div className="app-shell">
+      <nav className="sidebar">
+        <div className="sidebar-logo">
+          <div className="dot"/>
+          PPH<span>Predict</span>
+        </div>
+
+        <button className="nav-item" style={{color:'var(--text3)',fontSize:12,marginBottom:6}} onClick={() => setScreen('landing')}>
+          ← Back to Home
+        </button>
+
+        <div className="nav-section">Navigation</div>
+        {nav.map(n => (
+          <button key={n.id} className={`nav-item ${page===n.id?'active':''}`} onClick={() => setPage(n.id)}>
+            <span className="ni">{n.icon}</span>
+            {n.label}
+            {n.badge!=null && <span className="nav-badge">{n.badge}</span>}
+          </button>
+        ))}
+
+        <div className="sidebar-footer">
+          <div className="model-chip">
+            <div className="model-chip-top">
+              <span className="model-chip-name">Model v2.0</span>
+              <span className="model-chip-badge">PROTOTYPE</span>
+            </div>
+            <div className="model-chip-row"><span>Type</span><span>Simulated</span></div>
+            <div className="model-chip-row"><span>Algorithm</span><span>Log. Reg.</span></div>
+            <div className="model-chip-row"><span>Threshold</span><span>{(MODEL.threshold*100).toFixed(1)}%</span></div>
+            <div className="model-chip-row"><span>Dataset</span><span>None yet</span></div>
+            <div className="live-dot">Running in browser</div>
+          </div>
+        </div>
+      </nav>
+
+      <main className="main">
+        {page === 'predict'  && <PredictPage onSave={handleSave}/>}
+        {page === 'data'     && <DataPage records={records} onUpdate={setRec}/>}
+        {page === 'model'    && <ModelPage/>}
+        {page === 'readings' && <ReadingsPage/>}
+      </main>
+
+      {toast && <Toast msg={toast.msg} icon={toast.icon} onClose={() => setToast(null)}/>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
