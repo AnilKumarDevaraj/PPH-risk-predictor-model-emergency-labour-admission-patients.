@@ -1,0 +1,2 @@
+# PPH-risk-predictor-model-emergency-labour-admission-patients.
+Postpartum Hemorrhage is excessive bleeding after childbirth defined as blood loss of 500ml or more after vaginal delivery or 1000ml or more after caesarean delivery, within 24 hours of birth. It is the leading cause of maternal mortality worldwide, accounting for roughly 27% of all maternal deaths globally and most of these deaths are preventable.
